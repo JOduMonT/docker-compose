@@ -21,6 +21,7 @@ services:
     environment:
       - SEARXNG_BASE_URL=http://localhost:${SEARXNG_PORT:-8888}/
       - SEARXNG_REDIS_URL=redis://valkey:6379/0
+      - SEARXNG_SECRET=${SEARXNG_SECRET}
     depends_on:
       valkey:
         condition: service_healthy
