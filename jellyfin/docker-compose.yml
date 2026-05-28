@@ -1,0 +1,50 @@
+---
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    network_mode: host
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/kfd:/dev/kfd
+    volumes:
+      - ./config:/config
+      - ${MEDIA_BOOKS:-/mnt/WD1000/Books}:/data/Books
+      - ${MEDIA_MUSIC:-/mnt/WD1000/Music}:/data/Music
+      - ${MEDIA_SHOWS:-/mnt/WD1000/Shows}:/data/Shows
+      - ${MEDIA_MOVIES:-/mnt/WD1000/Movies}:/data/Movies
+    env_file:
+      - path: ../.env
+        required: false
+      - path: ../.env.local
+        required: false
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-100}
+      - TZ=${TZ:-Europe/Paris}
+      - DOCKER_MODS=linuxserver/mods:jellyfin-amd
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - '-q'
+        - '--spider'
+        - 'http://127.0.0.1:8096/healthz'
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

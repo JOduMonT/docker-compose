@@ -1,0 +1,15 @@
+# User-specific local environment overrides containing sensitive details
+.env.local
+.env.*.local
+**/.env.local
+**/.env.*.local
+
+# Local service database, config, and download folders
+**/config/
+**/data/
+valkey-data/
+
+# OS and system files
+.DS_Store
+Thumbs.db
+*.log

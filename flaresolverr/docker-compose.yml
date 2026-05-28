@@ -1,0 +1,43 @@
+services:
+  flaresolverr:
+    image: 'ghcr.io/flaresolverr/flaresolverr:latest'
+    container_name: flaresolverr
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:${FLARESOLVERR_PORT:-8191}:8191"
+    env_file:
+      - path: ../.env
+        required: false
+      - path: ../.env.local
+        required: false
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FILE=none
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://127.0.0.1:8191'
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

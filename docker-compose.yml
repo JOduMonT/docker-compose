@@ -1,0 +1,6 @@
+include:
+  #  - path: ./changedetection/docker-compose.yml
+  #  - path: ./flaresolverr/docker-compose.yml
+  - path: ./searxng/docker-compose.yml
+  - path: ./jellyfin/docker-compose.yml
+  - path: ./qbittorrent/docker-compose.yml

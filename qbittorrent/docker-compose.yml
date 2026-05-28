@@ -1,0 +1,51 @@
+---
+services:
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    stop_grace_period: "15s"
+    ports:
+      - "127.0.0.1:${QBITTORRENT_PORT:-8080}:${WEBUI_PORT:-8080}"
+    volumes:
+      - ./config:/config
+      - ${DOWNLOADS_DIR:-/home/shared/Downloads}:/data/Downloads
+      - ${MEDIA_BOOKS:-/mnt/WD1000/Books}:/data/Books
+      - ${MEDIA_MUSIC:-/mnt/WD1000/Music}:/data/Music
+      - ${MEDIA_SHOWS:-/mnt/WD1000/Shows}:/data/Shows
+      - ${MEDIA_MOVIES:-/mnt/WD1000/Movies}:/data/Movies
+    env_file:
+      - path: ../.env
+        required: false
+      - path: ../.env.local
+        required: false
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-100}
+      - TZ=${TZ:-Europe/Paris}
+      - WEBUI_PORT=${WEBUI_PORT:-8080}
+      - TORRENTING_PORT=${TORRENTING_PORT:-6881}
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - '-q'
+        - '--spider'
+        - "http://127.0.0.1:${WEBUI_PORT:-8080}/healthz"
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
