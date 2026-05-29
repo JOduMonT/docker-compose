@@ -9,11 +9,11 @@ services:
       - "127.0.0.1:${QBITTORRENT_PORT:-8080}:${WEBUI_PORT:-8080}"
     volumes:
       - ./config:/config
-      - ${DOWNLOADS_DIR:-/home/shared/Downloads}:/data/Downloads
-      - ${MEDIA_BOOKS:-/mnt/WD1000/Books}:/data/Books
-      - ${MEDIA_MUSIC:-/mnt/WD1000/Music}:/data/Music
-      - ${MEDIA_SHOWS:-/mnt/WD1000/Shows}:/data/Shows
-      - ${MEDIA_MOVIES:-/mnt/WD1000/Movies}:/data/Movies
+      - ${DOWNLOADS_DIR:-/srv/Downloads}:/data/Downloads
+      - ${MEDIA_BOOKS:-/srv/Books}:/data/Books
+      - ${MEDIA_MOVIES:-/srv/Movies}:/data/Movies
+      - ${MEDIA_MUSIC:-/srv/Music}:/data/Music
+      - ${MEDIA_SHOWS:-/srv/Shows}:/data/Shows
     env_file:
       - path: ../.env
         required: false

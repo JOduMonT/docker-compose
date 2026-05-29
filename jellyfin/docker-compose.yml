@@ -10,10 +10,10 @@ services:
       - /dev/kfd:/dev/kfd
     volumes:
       - ./config:/config
-      - ${MEDIA_BOOKS:-/mnt/WD1000/Books}:/data/Books
-      - ${MEDIA_MUSIC:-/mnt/WD1000/Music}:/data/Music
-      - ${MEDIA_SHOWS:-/mnt/WD1000/Shows}:/data/Shows
-      - ${MEDIA_MOVIES:-/mnt/WD1000/Movies}:/data/Movies
+      - ${MEDIA_BOOKS:-/srv/Books}:/data/Books
+      - ${MEDIA_MOVIES:-/srv/Movies}:/data/Movies
+      - ${MEDIA_MUSIC:-/srv/Music}:/data/Music
+      - ${MEDIA_SHOWS:-/srv/Shows}:/data/Shows
     env_file:
       - path: ../.env
         required: false
