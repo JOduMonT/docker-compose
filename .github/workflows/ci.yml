@@ -1,0 +1,75 @@
+name: CI Stack Validation & Security Audit
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate-compose:
+    name: Validate Compose Syntax & Hierarchy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Mock Environment
+        run: |
+          # Create a dummy .env file based on the example to allow configuration validation
+          cp .env.example .env
+          # Set a mock SearXNG secret to satisfy substitution checks
+          sed -i 's/replace_this_with_your_random_openssl_generated_hex_secret_key/d3b07384d113edec49eaa6238ad5ff00/g' .env
+
+      - name: Validate Root and Module Syntax
+        run: |
+          # 1. Test root compose file with all default active includes
+          docker compose config > /dev/null
+          
+          # 2. Test every individual sub-module compose file independently
+          for compose_file in $(find . -maxdepth 2 -name "docker-compose.yml"); do
+            echo "Validating: $compose_file"
+            docker compose -f "$compose_file" config > /dev/null
+          done
+
+  security-scan:
+    name: Secret Leak & Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for Hardcoded Secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  quality-audit:
+    name: Resiliency Standards Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Memory Limits & Logging Configurations
+        run: |
+          # Enforce that every docker-compose.yml has deploy limits and log rotation options
+          errors=0
+          for file in $(find . -maxdepth 2 -name "docker-compose.yml" ! -path "./docker-compose.yml"); do
+            # Check for memory limits presence
+            if ! grep -q "memory:" "$file"; then
+              echo "❌ ERROR: File $file contains services missing explicit memory limits!"
+              errors=$((errors + 1))
+            fi
+            # Check for logging driver limits
+            if ! grep -q "max-size:" "$file"; then
+              echo "❌ ERROR: File $file contains services missing explicit log rotation constraints!"
+              errors=$((errors + 1))
+            fi
+          done
+          if [ $errors -ne 0 ]; then
+            exit 1
+          fi
+          echo "✅ All compose files meet the mandatory Resiliency Limits."
