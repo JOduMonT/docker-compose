@@ -71,6 +71,13 @@ env_file:
 
 ## 🛡️ Mandatory Resiliency Standards
 
+> **Read [`docs/HARD-WON-GOTCHAS.md`](docs/HARD-WON-GOTCHAS.md) before hardening a new
+> service.** Every entry there was found by breaking something in production —
+> Postgres schema permissions and volume mount points, the `cap_drop: ALL` privilege-drop
+> trap, why generic "Chromium in Docker" advice is usually wrong, and why
+> `docker compose ps` without `-a` silently passes a crash-looped stack. Rescued from
+> the retired Coolify fleet repo 2026-09-07.
+
 To prevent performance degradation, memory leaks, disk exhaustion, or system lockups, **every single container definition** must adhere to these five standards. If you write a service that does not follow these, your implementation is incomplete.
 
 ### 1. Resource Boundaries 📉

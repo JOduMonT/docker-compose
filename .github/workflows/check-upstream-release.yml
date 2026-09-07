@@ -1,0 +1,38 @@
+name: Check upstream releases
+
+# Runs Renovate to open/update image version-bump PRs for the pinned tags in the
+# per-service compose files.
+#
+# Adapted 2026-09-07 from fleet-toolkit's reusable check-upstream-release.yml,
+# retired with the Coolify fleet. Converted from `workflow_call` to a direct
+# schedule — the permissions block below now actually applies, which it could not
+# do reliably as a reusable workflow (see docs/HARD-WON-GOTCHAS.md, "GitHub Actions").
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      # config:recommended enables Renovate's Dependency Dashboard, which is a
+      # GitHub issue. Without issues:write the run logs
+      # "WARN: Could not ensure issue / Error: integration-unauthorized"
+      # and the dashboard silently never appears.
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Renovate
+        uses: renovatebot/github-action@v46.2.2
+        with:
+          configurationFile: renovate.json
+          token: ${{ github.token }}
+        env:
+          # Without this Renovate has no repository list, logs
+          # "WARN: No repositories found", scans nothing, and STILL EXITS 0 — so
+          # the job goes green while never once looking for an upstream release.
+          RENOVATE_REPOSITORIES: ${{ github.repository }}

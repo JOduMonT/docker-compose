@@ -1,0 +1,67 @@
+name: Smoke test — start each stack and catch crash-loops
+
+# ci.yml validates that compose files PARSE. This one actually STARTS each stack
+# and fails if anything died a few seconds later — the class of bug a `config`
+# check cannot see.
+#
+# Adapted 2026-09-07 from fleet-toolkit's reusable compose-smoke-test.yml, which is
+# being retired with the Coolify fleet. Converted from `workflow_call` to a direct
+# trigger since there is no longer a fleet of callers.
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    name: Start & verify (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Services that can start with no host-specific mounts or hardware.
+        # jellyfin (host networking + /dev/dri) and qbittorrent (media mounts)
+        # are deliberately excluded — they cannot start meaningfully on a runner.
+        service: [searxng, flaresolverr, browser, changedetection]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Seed environment
+        run: |
+          cp .env.example .env
+          sed -i 's/replace_this_with_your_random_openssl_generated_hex_secret_key/d3b07384d113edec49eaa6238ad5ff00/g' .env
+          # metamcp needs a real secret; harmless for the others.
+          echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)" >> .env
+          if [ -f "${{ matrix.service }}/.env.example" ]; then
+            cp "${{ matrix.service }}/.env.example" "${{ matrix.service }}/.env"
+          fi
+
+      - name: Start the stack
+        run: docker compose -f "${{ matrix.service }}/docker-compose.yml" up -d
+
+      - name: Wait for containers to settle
+        run: sleep 20
+
+      - name: Every container must still be running
+        run: |
+          set -euo pipefail
+          # `ps` WITHOUT -a lists only running containers, so a container that
+          # started and then crashed simply vanishes from the output and the check
+          # passes — the exact failure this step exists to catch. See
+          # docs/HARD-WON-GOTCHAS.md, "Docker operations".
+          not_running=$(docker compose -f "${{ matrix.service }}/docker-compose.yml" \
+            ps -a --format '{{.Name}} {{.State}}' | grep -v ' running$' || true)
+          if [ -n "$not_running" ]; then
+            echo "::error::These containers are not running:"
+            echo "$not_running"
+            docker compose -f "${{ matrix.service }}/docker-compose.yml" logs
+            exit 1
+          fi
+          echo "✅ all containers running"
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f "${{ matrix.service }}/docker-compose.yml" down -v

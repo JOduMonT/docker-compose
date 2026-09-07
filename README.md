@@ -12,6 +12,10 @@ This repository contains a highly optimized, production-grade, and resilient mul
 4.  **[Jellyfin](https://jellyfin.org/)**: The ultimate voluntary media system for organizing and streaming your private libraries (configured with host-networking and AMD hardware acceleration).
 5.  **[ChangeDetection.io](https://changedetection.io/)**: (Optional) Powerful self-hosted website change monitoring engine.
 6.  **[Flaresolverr](https://github.com/FlareSolverr/FlareSolverr)**: (Optional) Proxy server to bypass DDoS protection mechanisms for scraping and indices.
+7.  **[Browser](https://github.com/coollabsio/openclaw)**: (Optional) Shared Chrome/CDP sidecar — a real browser on tap for scraping and automation, with a web desktop UI. Migrated here 2026-09-07 from its own repo.
+8.  **[MetaMCP](https://github.com/metatool-ai/metamcp)**: (Optional) MCP gateway with a bundled hardened Postgres 18. Migrated here 2026-09-07 from its own repo.
+
+> **Production note:** production self-hosting runs on [Cloudron](https://cloudron.io) (automatic maintenance, updates and backups). This repo is the **local Docker + Docker Compose** side. The former Coolify fleet is retired; the hard-won operational lessons from it are preserved in [`docs/HARD-WON-GOTCHAS.md`](docs/HARD-WON-GOTCHAS.md).
 
 ---
 

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "docker-compose": {
+    "managerFilePatterns": ["/(^|/)docker-compose\\.ya?ml$/"]
+  },
+  "packageRules": [
+    {
+      "description": "Images pinned to a floating tag (:latest) are already tracked by the digest, not the tag — do not open version PRs for them.",
+      "matchPackageNames": ["*"],
+      "matchCurrentValue": "latest",
+      "enabled": false
+    }
+  ]
+}

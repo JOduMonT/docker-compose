@@ -1,0 +1,63 @@
+services:
+  browser:
+    image: 'coollabsio/openclaw-browser:0.3.0'
+    container_name: browser
+    restart: unless-stopped
+    env_file:
+      - path: ../.env
+        required: false
+      - path: ../.env.local
+        required: false
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      - CHROME_CLI=--remote-debugging-port=9222
+    ports:
+      # Loopback-bound per this repo's convention. The CDP port is UNAUTHENTICATED —
+      # anything that can reach it drives a real browser, so never bind it to 0.0.0.0.
+      - "127.0.0.1:${BROWSER_UI_PORT:-3000}:3000"      # web desktop UI, for eyeballing
+      - "127.0.0.1:${BROWSER_CDP_PORT:-9223}:9223"     # CDP
+    volumes:
+      - browser-data:/config
+    # Chromium needs real shared memory; the 64MB default causes tab crashes.
+    shm_size: 2g
+    # Hardening — see docs/HARD-WON-GOTCHAS.md, "Chromium capability advice".
+    # The generic `cap_add: SYS_ADMIN` / `seccomp=unconfined` advice for Chromium
+    # images is WRONG for this image: it was live-tested with zero extra
+    # capabilities (real CDP Page.navigate) and worked. What it actually needs is
+    # the s6-overlay privilege-drop set below, the same reason Postgres needs it.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9223/json/version -o /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+          pids: 512
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  browser-data:

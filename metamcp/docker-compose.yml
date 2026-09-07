@@ -1,0 +1,106 @@
+services:
+  metamcp:
+    image: 'ghcr.io/metatool-ai/metamcp:2.4.22'
+    container_name: metamcp
+    restart: unless-stopped
+    env_file:
+      - path: ../.env
+        required: false
+      - path: ../.env.local
+        required: false
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+    environment:
+      TZ: ${TZ:-Etc/UTC}
+      POSTGRES_HOST: ${METAMCP_POSTGRES_HOST:-metamcp-postgres}
+      POSTGRES_PORT: ${METAMCP_POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${METAMCP_POSTGRES_USER:-metamcp_user}
+      POSTGRES_PASSWORD: ${METAMCP_POSTGRES_PASSWORD:-m3t4mcp}
+      POSTGRES_DB: ${METAMCP_POSTGRES_DB:-metamcp_db}
+      DATABASE_URL: postgresql://${METAMCP_POSTGRES_USER:-metamcp_user}:${METAMCP_POSTGRES_PASSWORD:-m3t4mcp}@${METAMCP_POSTGRES_HOST:-metamcp-postgres}:${METAMCP_POSTGRES_PORT:-5432}/${METAMCP_POSTGRES_DB:-metamcp_db}
+      APP_URL: ${METAMCP_APP_URL:-http://localhost:12008}
+      NEXT_PUBLIC_APP_URL: ${METAMCP_APP_URL:-http://localhost:12008}
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?must be set — generate with openssl rand -hex 32}"
+      TRANSFORM_LOCALHOST_TO_DOCKER_INTERNAL: "true"
+    ports:
+      - "127.0.0.1:${METAMCP_PORT:-12008}:12008"
+    depends_on:
+      metamcp-postgres:
+        condition: service_healthy
+    volumes:
+      - metamcp_uv_cache:/home/nextjs/.cache/uv
+    # Hardening validated against an isolated test copy before landing on a live
+    # instance. cap_drop ALL is safe: the image already runs as non-root (USER
+    # nextjs). read_only is DELIBERATELY OMITTED — this app writes to multiple
+    # package-manager caches at runtime while installing MCP servers, and the exact
+    # write surface depends on which servers a user configures, so it is not fully
+    # enumerable ahead of time. No healthcheck override: the image bakes one in.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+          pids: 512
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  metamcp-postgres:
+    image: 'postgres:18-alpine'
+    container_name: metamcp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${METAMCP_POSTGRES_DB:-metamcp_db}
+      POSTGRES_USER: ${METAMCP_POSTGRES_USER:-metamcp_user}
+      POSTGRES_PASSWORD: ${METAMCP_POSTGRES_PASSWORD:-m3t4mcp}
+    volumes:
+      # Postgres 18+ wants a SINGLE mount at /var/lib/postgresql, NOT the older
+      # /var/lib/postgresql/data — it manages the version subdirectory itself.
+      # Mounting the old path crash-loops even on an empty volume.
+      # See docs/HARD-WON-GOTCHAS.md.
+      - metamcp_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${METAMCP_POSTGRES_USER:-metamcp_user} -d ${METAMCP_POSTGRES_DB:-metamcp_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # cap_drop ALL alone breaks the image's root->postgres privilege-drop entrypoint.
+    # This exact set is what it needs — see docs/HARD-WON-GOTCHAS.md.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+          pids: 200
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  metamcp_postgres_data:
+  metamcp_uv_cache:
